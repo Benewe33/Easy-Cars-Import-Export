@@ -108,6 +108,37 @@
   .search-btn { padding: 0 14px; }
 }
 
+.checkout-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 130; padding: 16px; overflow-y: auto; }
+.checkout { background: #fff; border-radius: 18px; max-width: 540px; width: 100%; padding: 28px; position: relative; max-height: 92vh; overflow-y: auto; }
+.checkout h2 { font-size: 22px; margin-bottom: 4px; }
+.checkout .sub { color: #888; font-size: 13px; margin-bottom: 18px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #444; }
+.field input, .field textarea { width: 100%; border: 1.5px solid #E2E2E8; border-radius: 10px; padding: 11px 13px; font-size: 14px; font-family: inherit; outline: none; }
+.field input:focus, .field textarea:focus { border-color: #FF6A00; }
+.field .req { color: #FF2D78; }
+.pay-options { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 18px; }
+.pay-opt { border: 1.5px solid #E2E2E8; border-radius: 12px; padding: 13px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: .15s; }
+.pay-opt:hover { border-color: #FF6A00; }
+.pay-opt.active { border-color: #FF6A00; background: #FFF6F0; }
+.pay-opt .ico { font-size: 22px; }
+.pay-opt .txt { flex: 1; }
+.pay-opt .txt b { display: block; font-size: 14px; }
+.pay-opt .txt span { font-size: 12px; color: #888; }
+.pay-opt .soon { font-size: 10px; font-weight: 700; background: #FFE0B2; color: #E65100; padding: 3px 7px; border-radius: 6px; }
+.order-summary { background: #F8F8FA; border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; }
+.order-summary .line { display: flex; justify-content: space-between; font-size: 13.5px; padding: 4px 0; }
+.order-summary .line.tot { font-weight: 800; font-size: 17px; color: #FF2D78; border-top: 1px solid #E2E2E8; margin-top: 6px; padding-top: 10px; }
+.success-box { text-align: center; padding: 20px 0; }
+.success-box .check { font-size: 60px; }
+.success-box h2 { margin: 10px 0; }
+.success-box .num { background: #F0F0F5; border-radius: 10px; padding: 10px; font-weight: 700; margin: 14px 0; }
+.loading-screen { display: grid; place-items: center; min-height: 60vh; color: #888; font-size: 15px; }
+.spinner { width: 38px; height: 38px; border: 4px solid #FFE0CC; border-top-color: #FF6A00; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.stock-low { font-size: 11px; color: #E65100; font-weight: 700; }
+.stock-out { font-size: 11px; color: #C62828; font-weight: 700; }
+
 </style>
 </head>
 <body>
@@ -116,11 +147,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script type="text/babel">
-const { useState, useMemo, useRef } = React;
+const { useState, useMemo, useEffect } = React;
 
-const PRODUCTS = [{"id":"B2C-1","name":"Perruques naturelles","category":"BEAUTÉ & SOINS","segment":"B2C","price":42705,"oldPrice":49110,"discount":15,"rating":4.0,"sold":331,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-2","name":"Perruques synthétiques","category":"BEAUTÉ & SOINS","segment":"B2C","price":7517,"oldPrice":8644,"discount":15,"rating":4.6,"sold":82,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-3","name":"Mèches pour tresses (braids)","category":"BEAUTÉ & SOINS","segment":"B2C","price":16047,"oldPrice":0,"discount":0,"rating":4.6,"sold":783,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-4","name":"Extensions de cheveux","category":"BEAUTÉ & SOINS","segment":"B2C","price":30239,"oldPrice":42334,"discount":40,"rating":4.8,"sold":36150,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-5","name":"Cils postiches","category":"BEAUTÉ & SOINS","segment":"B2C","price":23098,"oldPrice":32337,"discount":40,"rating":4.2,"sold":831,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-6","name":"Faux ongles","category":"BEAUTÉ & SOINS","segment":"B2C","price":25698,"oldPrice":29552,"discount":15,"rating":4.4,"sold":15000,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-7","name":"Kit nail art complet","category":"BEAUTÉ & SOINS","segment":"B2C","price":30908,"oldPrice":35544,"discount":15,"rating":5.0,"sold":22910,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-8","name":"Fond de teint toutes carnations","category":"BEAUTÉ & SOINS","segment":"B2C","price":41998,"oldPrice":62997,"discount":50,"rating":4.6,"sold":15000,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-9","name":"Rouge à lèvres","category":"BEAUTÉ & SOINS","segment":"B2C","price":15735,"oldPrice":22029,"discount":40,"rating":5.0,"sold":48140,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-10","name":"Mascara","category":"BEAUTÉ & SOINS","segment":"B2C","price":19017,"oldPrice":32328,"discount":70,"rating":4.6,"sold":36640,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-11","name":"Crème éclaircissante corps","category":"BEAUTÉ & SOINS","segment":"B2C","price":14530,"oldPrice":20342,"discount":40,"rating":4.7,"sold":87000,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-12","name":"Savon éclaircissant","category":"BEAUTÉ & SOINS","segment":"B2C","price":12015,"oldPrice":15619,"discount":30,"rating":4.2,"sold":91000,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-13","name":"Huile de coco pure","category":"BEAUTÉ & SOINS","segment":"B2C","price":37300,"oldPrice":48490,"discount":30,"rating":4.7,"sold":913,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-14","name":"Huile de ricin","category":"BEAUTÉ & SOINS","segment":"B2C","price":21473,"oldPrice":34356,"discount":60,"rating":4.3,"sold":37000,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-15","name":"Gel coiffant","category":"BEAUTÉ & SOINS","segment":"B2C","price":33517,"oldPrice":53627,"discount":60,"rating":4.9,"sold":85170,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-16","name":"Coloration capillaire","category":"BEAUTÉ & SOINS","segment":"B2C","price":9950,"oldPrice":12935,"discount":30,"rating":4.7,"sold":53040,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-17","name":"Sèche-cheveux","category":"BEAUTÉ & SOINS","segment":"B2C","price":39042,"oldPrice":62467,"discount":60,"rating":4.4,"sold":191,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-18","name":"Lisseur cheveux","category":"BEAUTÉ & SOINS","segment":"B2C","price":3887,"oldPrice":4470,"discount":15,"rating":4.2,"sold":213,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-19","name":"Tondeuse homme professionnelle","category":"BEAUTÉ & SOINS","segment":"B2C","price":26016,"oldPrice":41625,"discount":60,"rating":4.6,"sold":42000,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-20","name":"Rasoir électrique","category":"BEAUTÉ & SOINS","segment":"B2C","price":1552,"oldPrice":1784,"discount":15,"rating":4.7,"sold":53710,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-21","name":"Parfum générique","category":"BEAUTÉ & SOINS","segment":"B2C","price":8110,"oldPrice":11354,"discount":40,"rating":4.4,"sold":43000,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-22","name":"Kit blanchiment dentaire","category":"BEAUTÉ & SOINS","segment":"B2C","price":12508,"oldPrice":14384,"discount":15,"rating":4.9,"sold":355,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-23","name":"Miroir LED maquillage","category":"BEAUTÉ & SOINS","segment":"B2C","price":10816,"oldPrice":16224,"discount":50,"rating":4.8,"sold":10000,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-24","name":"Éponges maquillage","category":"BEAUTÉ & SOINS","segment":"B2C","price":22043,"oldPrice":37473,"discount":70,"rating":4.0,"sold":421,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-25","name":"Masque facial tissu","category":"BEAUTÉ & SOINS","segment":"B2C","price":16585,"oldPrice":19072,"discount":15,"rating":4.1,"sold":547,"emoji":"💄","color":"#F2789F","renta":"OUI","repeat":false},{"id":"B2C-26","name":"Tissus imprimés ankara synthétique","category":"MODE & VÊTEMENTS","segment":"B2C","price":9214,"oldPrice":15663,"discount":70,"rating":4.9,"sold":77000,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-27","name":"Chaussures de sport","category":"MODE & VÊTEMENTS","segment":"B2C","price":28530,"oldPrice":37089,"discount":30,"rating":4.9,"sold":42950,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-28","name":"Sandales et tongs","category":"MODE & VÊTEMENTS","segment":"B2C","price":44819,"oldPrice":67228,"discount":50,"rating":4.4,"sold":579,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-29","name":"Chaussures formelles homme","category":"MODE & VÊTEMENTS","segment":"B2C","price":15525,"oldPrice":17853,"discount":15,"rating":4.3,"sold":652,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-30","name":"Sacs à main femme","category":"MODE & VÊTEMENTS","segment":"B2C","price":1271,"oldPrice":1461,"discount":15,"rating":4.7,"sold":110,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-31","name":"Sacs à dos","category":"MODE & VÊTEMENTS","segment":"B2C","price":22454,"oldPrice":25822,"discount":15,"rating":4.5,"sold":37000,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-32","name":"Ceintures cuir synthétique","category":"MODE & VÊTEMENTS","segment":"B2C","price":9471,"oldPrice":16100,"discount":70,"rating":4.2,"sold":534,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-33","name":"Montres fashion","category":"MODE & VÊTEMENTS","segment":"B2C","price":7152,"oldPrice":11443,"discount":60,"rating":4.4,"sold":16000,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-34","name":"Lunettes de soleil","category":"MODE & VÊTEMENTS","segment":"B2C","price":43624,"oldPrice":50167,"discount":15,"rating":4.1,"sold":795,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-35","name":"Bijoux fantaisie (colliers)","category":"MODE & VÊTEMENTS","segment":"B2C","price":13356,"oldPrice":17362,"discount":30,"rating":4.5,"sold":79120,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-36","name":"Bracelets et bagues","category":"MODE & VÊTEMENTS","segment":"B2C","price":31118,"oldPrice":40453,"discount":30,"rating":4.9,"sold":127,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-37","name":"T-shirts unis en gros","category":"MODE & VÊTEMENTS","segment":"B2C","price":4115,"oldPrice":0,"discount":0,"rating":5.0,"sold":48720,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-38","name":"Sous-vêtements homme","category":"MODE & VÊTEMENTS","segment":"B2C","price":32626,"oldPrice":55464,"discount":70,"rating":4.2,"sold":19600,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-39","name":"Sous-vêtements femme","category":"MODE & VÊTEMENTS","segment":"B2C","price":941,"oldPrice":1505,"discount":60,"rating":4.3,"sold":84540,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-40","name":"Vêtements enfants","category":"MODE & VÊTEMENTS","segment":"B2C","price":37222,"oldPrice":63277,"discount":70,"rating":4.2,"sold":17000,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-41","name":"Robes soirée","category":"MODE & VÊTEMENTS","segment":"B2C","price":36333,"oldPrice":0,"discount":0,"rating":4.7,"sold":18210,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-42","name":"Blazers et vestes","category":"MODE & VÊTEMENTS","segment":"B2C","price":33754,"oldPrice":40504,"discount":20,"rating":4.1,"sold":570,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-43","name":"Maillots de foot répliques","category":"MODE & VÊTEMENTS","segment":"B2C","price":39796,"oldPrice":45765,"discount":15,"rating":4.7,"sold":25000,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-44","name":"Casquettes et chapeaux","category":"MODE & VÊTEMENTS","segment":"B2C","price":16935,"oldPrice":0,"discount":0,"rating":4.6,"sold":95650,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-45","name":"Chaussettes en gros","category":"MODE & VÊTEMENTS","segment":"B2C","price":14186,"oldPrice":21279,"discount":50,"rating":4.2,"sold":95000,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-46","name":"Pagnes synthétiques","category":"MODE & VÊTEMENTS","segment":"B2C","price":20460,"oldPrice":34782,"discount":70,"rating":4.3,"sold":21880,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-47","name":"Uniformes scolaires tissu","category":"MODE & VÊTEMENTS","segment":"B2C","price":41508,"oldPrice":47734,"discount":15,"rating":4.1,"sold":268,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-48","name":"Robes de mariée","category":"MODE & VÊTEMENTS","segment":"B2C","price":23672,"oldPrice":27222,"discount":15,"rating":4.9,"sold":56690,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-49","name":"Costumes homme","category":"MODE & VÊTEMENTS","segment":"B2C","price":36400,"oldPrice":50960,"discount":40,"rating":4.6,"sold":11000,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-50","name":"Vêtements de sport","category":"MODE & VÊTEMENTS","segment":"B2C","price":37146,"oldPrice":52004,"discount":40,"rating":4.9,"sold":156,"emoji":"👗","color":"#9B5DE5","renta":"OUI","repeat":false},{"id":"B2C-51","name":"Écouteurs Bluetooth","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":7814,"oldPrice":9376,"discount":20,"rating":4.3,"sold":669,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-52","name":"Câbles USB-C","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":42365,"oldPrice":59310,"discount":40,"rating":4.5,"sold":21000,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-53","name":"Câbles iPhone Lightning","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":28559,"oldPrice":39982,"discount":40,"rating":4.0,"sold":31430,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-54","name":"Chargeurs rapides","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":11389,"oldPrice":19361,"discount":70,"rating":4.6,"sold":487,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-55","name":"Power banks","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":10568,"oldPrice":0,"discount":0,"rating":4.8,"sold":646,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-56","name":"Coques de téléphone","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":3541,"oldPrice":4957,"discount":40,"rating":4.4,"sold":865,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-57","name":"Montres connectées","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":17153,"oldPrice":19725,"discount":15,"rating":4.4,"sold":89000,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-58","name":"Enceintes Bluetooth","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":10928,"oldPrice":14206,"discount":30,"rating":4.9,"sold":869,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-59","name":"Ventilateurs USB rechargeables","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":12554,"oldPrice":18831,"discount":50,"rating":4.8,"sold":471,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-60","name":"Lampes solaires portables","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":7884,"oldPrice":12614,"discount":60,"rating":4.9,"sold":929,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-61","name":"Ampoules LED","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":30966,"oldPrice":46449,"discount":50,"rating":4.3,"sold":864,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-62","name":"Rallonges électriques","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":44055,"oldPrice":57271,"discount":30,"rating":4.4,"sold":21370,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-63","name":"Radios FM portables","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":42840,"oldPrice":68544,"discount":60,"rating":4.7,"sold":913,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-64","name":"Chargeurs solaires portables","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":8359,"oldPrice":11702,"discount":40,"rating":4.2,"sold":23000,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-65","name":"Caméras surveillance WiFi","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":29279,"oldPrice":43918,"discount":50,"rating":4.7,"sold":87000,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-66","name":"Stabilisateurs de tension","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":8378,"oldPrice":13404,"discount":60,"rating":4.9,"sold":15000,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-67","name":"Téléphones basiques (feature phones)","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":29377,"oldPrice":0,"discount":0,"rating":4.5,"sold":97000,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-68","name":"Tablettes enfants","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":44750,"oldPrice":58175,"discount":30,"rating":4.4,"sold":64090,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-69","name":"Claviers et souris sans fil","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":44275,"oldPrice":50916,"discount":15,"rating":4.7,"sold":49000,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-70","name":"Onduleurs mini-UPS","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":27564,"oldPrice":41346,"discount":50,"rating":4.4,"sold":30850,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-71","name":"Routeurs WiFi","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":44376,"oldPrice":71001,"discount":60,"rating":4.7,"sold":88000,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-72","name":"Disques durs externes","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":20523,"oldPrice":32836,"discount":60,"rating":4.5,"sold":50,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-73","name":"Clés USB","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":28973,"oldPrice":43459,"discount":50,"rating":4.5,"sold":45010,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-74","name":"Projecteurs mini LED","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":11920,"oldPrice":13707,"discount":15,"rating":4.3,"sold":729,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-75","name":"Drones loisir","category":"ÉLECTRONIQUE & HIGH-TECH","segment":"B2C","price":44892,"oldPrice":62848,"discount":40,"rating":4.2,"sold":253,"emoji":"📱","color":"#00BBF9","renta":"OUI","repeat":false},{"id":"B2C-76","name":"Ustensiles de cuisine","category":"MAISON & CUISINE","segment":"B2C","price":16846,"oldPrice":28638,"discount":70,"rating":4.6,"sold":21930,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-77","name":"Casseroles et poêles","category":"MAISON & CUISINE","segment":"B2C","price":42072,"oldPrice":54693,"discount":30,"rating":4.7,"sold":443,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-78","name":"Vaisselle en plastique colorée","category":"MAISON & CUISINE","segment":"B2C","price":10471,"oldPrice":0,"discount":0,"rating":4.9,"sold":931,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-79","name":"Bouilloires électriques","category":"MAISON & CUISINE","segment":"B2C","price":12326,"oldPrice":20954,"discount":70,"rating":4.1,"sold":305,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-80","name":"Mixeurs et blenders","category":"MAISON & CUISINE","segment":"B2C","price":31250,"oldPrice":46875,"discount":50,"rating":5.0,"sold":88000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-81","name":"Ventilateurs sur pied","category":"MAISON & CUISINE","segment":"B2C","price":33881,"oldPrice":54209,"discount":60,"rating":4.8,"sold":30000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-82","name":"Moustiquaires imprégnées","category":"MAISON & CUISINE","segment":"B2C","price":31908,"oldPrice":54243,"discount":70,"rating":4.3,"sold":55430,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-83","name":"Draps et linge de maison","category":"MAISON & CUISINE","segment":"B2C","price":41874,"oldPrice":54436,"discount":30,"rating":4.3,"sold":56810,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-84","name":"Thermos et gourdes","category":"MAISON & CUISINE","segment":"B2C","price":22810,"oldPrice":34215,"discount":50,"rating":4.9,"sold":132,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-85","name":"Fer à repasser","category":"MAISON & CUISINE","segment":"B2C","price":25902,"oldPrice":31082,"discount":20,"rating":4.7,"sold":77970,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-86","name":"Articles déco maison","category":"MAISON & CUISINE","segment":"B2C","price":36360,"oldPrice":61812,"discount":70,"rating":4.4,"sold":59000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-87","name":"Nappes et couvre-lits","category":"MAISON & CUISINE","segment":"B2C","price":2080,"oldPrice":3328,"discount":60,"rating":4.5,"sold":58920,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-88","name":"Plaques de cuisson électriques","category":"MAISON & CUISINE","segment":"B2C","price":36072,"oldPrice":46893,"discount":30,"rating":4.5,"sold":329,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-89","name":"Réchauds à gaz portables","category":"MAISON & CUISINE","segment":"B2C","price":26284,"oldPrice":39426,"discount":50,"rating":4.7,"sold":76240,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-90","name":"Glacières portables","category":"MAISON & CUISINE","segment":"B2C","price":9164,"oldPrice":0,"discount":0,"rating":4.9,"sold":20000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-91","name":"Seaux et bassines plastique","category":"MAISON & CUISINE","segment":"B2C","price":28889,"oldPrice":34666,"discount":20,"rating":4.9,"sold":18230,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-92","name":"Cadenas et serrures","category":"MAISON & CUISINE","segment":"B2C","price":22253,"oldPrice":28928,"discount":30,"rating":4.5,"sold":72110,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-93","name":"Matelas en mousse","category":"MAISON & CUISINE","segment":"B2C","price":17332,"oldPrice":19931,"discount":15,"rating":4.5,"sold":98370,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-94","name":"Oreillers et coussins","category":"MAISON & CUISINE","segment":"B2C","price":15494,"oldPrice":17818,"discount":15,"rating":4.8,"sold":717,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-95","name":"Machine à coudre portable","category":"MAISON & CUISINE","segment":"B2C","price":13865,"oldPrice":0,"discount":0,"rating":4.6,"sold":70000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-96","name":"Étagères métal démontables","category":"MAISON & CUISINE","segment":"B2C","price":8296,"oldPrice":10784,"discount":30,"rating":4.5,"sold":31000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-97","name":"Jerricans d'eau","category":"MAISON & CUISINE","segment":"B2C","price":40596,"oldPrice":46685,"discount":15,"rating":4.8,"sold":23000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-98","name":"Jouets enfants","category":"MAISON & CUISINE","segment":"B2C","price":2482,"oldPrice":3474,"discount":40,"rating":4.6,"sold":60000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-99","name":"Fournitures scolaires","category":"MAISON & CUISINE","segment":"B2C","price":13797,"oldPrice":15866,"discount":15,"rating":4.6,"sold":23000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2C-100","name":"Articles de sport (haltères, cordes)","category":"MAISON & CUISINE","segment":"B2C","price":20564,"oldPrice":23648,"discount":15,"rating":4.8,"sold":54000,"emoji":"🍳","color":"#FF8C42","renta":"OUI","repeat":false},{"id":"B2B-1","name":"Outils à main (marteaux, clés, tournevis)","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":178413,"oldPrice":267619,"discount":50,"rating":4.1,"sold":65900,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-2","name":"Perceuses électriques","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":32666,"oldPrice":52265,"discount":60,"rating":5.0,"sold":85320,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-3","name":"Meuleuses","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":197360,"oldPrice":276304,"discount":40,"rating":4.6,"sold":98170,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-4","name":"Vis et boulons en gros","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":221461,"oldPrice":310045,"discount":40,"rating":4.3,"sold":24190,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-5","name":"Peintures intérieur/extérieur","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":201732,"oldPrice":342944,"discount":70,"rating":4.6,"sold":734,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-6","name":"Pinceaux et rouleaux","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":228072,"oldPrice":342108,"discount":50,"rating":4.2,"sold":68130,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-7","name":"Tuyaux PVC","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":235770,"oldPrice":330078,"discount":40,"rating":4.6,"sold":579,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-8","name":"Câbles électriques","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":133077,"oldPrice":173000,"discount":30,"rating":4.7,"sold":711,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-9","name":"Interrupteurs et prises","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":82132,"oldPrice":106771,"discount":30,"rating":4.4,"sold":94000,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-10","name":"Ciment colle carrelage","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":129062,"oldPrice":193593,"discount":50,"rating":4.4,"sold":55000,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-11","name":"Carreaux et faïences","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":76019,"oldPrice":106426,"discount":40,"rating":4.3,"sold":173,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-12","name":"Portes en métal","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":204803,"oldPrice":245763,"discount":20,"rating":4.2,"sold":45000,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-13","name":"Fenêtres aluminium","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":204283,"oldPrice":285996,"discount":40,"rating":5.0,"sold":902,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-14","name":"Barres de fer à béton","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":52039,"oldPrice":72854,"discount":40,"rating":4.0,"sold":596,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-15","name":"Tôles ondulées","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":150059,"oldPrice":210082,"discount":40,"rating":4.7,"sold":179,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-16","name":"Bâches en plastique","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":79537,"oldPrice":135212,"discount":70,"rating":4.5,"sold":40200,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-17","name":"Échelles en aluminium","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":34907,"oldPrice":40143,"discount":15,"rating":4.4,"sold":125,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-18","name":"Gants et casques de sécurité","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":84648,"oldPrice":97345,"discount":15,"rating":5.0,"sold":87000,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-19","name":"Brouettes","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":64162,"oldPrice":102659,"discount":60,"rating":4.5,"sold":58710,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-20","name":"Niveaux et mètres ruban","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":154062,"oldPrice":0,"discount":0,"rating":4.6,"sold":36000,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-21","name":"Compresseurs d'air","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":74375,"oldPrice":85531,"discount":15,"rating":4.2,"sold":227,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-22","name":"Groupes électrogènes","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":123096,"oldPrice":209263,"discount":70,"rating":4.3,"sold":46000,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-23","name":"Pompes à eau électriques","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":23659,"oldPrice":30756,"discount":30,"rating":4.9,"sold":856,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-24","name":"Réservoirs d'eau plastique","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":63932,"oldPrice":76718,"discount":20,"rating":4.9,"sold":896,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-25","name":"Stabilisateurs industriels","category":"OUTILS & CONSTRUCTION","segment":"B2B","price":212782,"oldPrice":297894,"discount":40,"rating":4.6,"sold":894,"emoji":"🔧","color":"#6C757D","renta":"MOYENNE","repeat":false},{"id":"B2B-26","name":"Semences maraîchères","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":185532,"oldPrice":259744,"discount":40,"rating":4.7,"sold":91990,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-27","name":"Engrais chimiques","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":26087,"oldPrice":0,"discount":0,"rating":4.9,"sold":62800,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-28","name":"Pesticides et herbicides","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":28940,"oldPrice":37622,"discount":30,"rating":5.0,"sold":13390,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-29","name":"Pulvérisateurs manuels","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":15546,"oldPrice":18655,"discount":20,"rating":4.5,"sold":717,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-30","name":"Pulvérisateurs à dos motorisés","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":119264,"oldPrice":202748,"discount":70,"rating":5.0,"sold":67000,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-31","name":"Filets agricoles ombrage","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":180671,"oldPrice":207771,"discount":15,"rating":4.9,"sold":77440,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-32","name":"Filets de clôture","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":178692,"oldPrice":285907,"discount":60,"rating":4.8,"sold":613,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-33","name":"Tuyaux d'irrigation goutte-à-goutte","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":71164,"oldPrice":106746,"discount":50,"rating":4.1,"sold":841,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-34","name":"Pompes solaires agricoles","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":232899,"oldPrice":395928,"discount":70,"rating":4.4,"sold":56000,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-35","name":"Moulins à grain électriques","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":168947,"oldPrice":287209,"discount":70,"rating":4.8,"sold":258,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-36","name":"Décortiqueuses de maïs","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":119849,"oldPrice":203743,"discount":70,"rating":4.1,"sold":49200,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-37","name":"Batteuses de riz","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":8584,"oldPrice":13734,"discount":60,"rating":4.1,"sold":911,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-38","name":"Incubateurs à œufs","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":223141,"oldPrice":267769,"discount":20,"rating":4.5,"sold":75000,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-39","name":"Abreuvoirs et mangeoires volailles","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":113918,"oldPrice":193660,"discount":70,"rating":5.0,"sold":299,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-40","name":"Aliments bétail concentrés","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":54967,"oldPrice":65960,"discount":20,"rating":4.9,"sold":53000,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-41","name":"Médicaments vétérinaires de base","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":220102,"oldPrice":0,"discount":0,"rating":4.3,"sold":90220,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-42","name":"Serres agricoles plastique","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":131967,"oldPrice":197950,"discount":50,"rating":4.3,"sold":99030,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-43","name":"Brouettes agricoles","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":232960,"oldPrice":302848,"discount":30,"rating":5.0,"sold":72740,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-44","name":"Houes et daba en gros","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":88408,"oldPrice":150293,"discount":70,"rating":4.7,"sold":59000,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-45","name":"Machettes en gros","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":44873,"oldPrice":76284,"discount":70,"rating":5.0,"sold":92290,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-46","name":"Pièges à insectes","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":234163,"oldPrice":398077,"discount":70,"rating":4.1,"sold":11000,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-47","name":"Kits test sol agricole","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":112473,"oldPrice":134967,"discount":20,"rating":4.1,"sold":53000,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-48","name":"Vanneuses de céréales","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":175350,"oldPrice":201652,"discount":15,"rating":4.9,"sold":97420,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-49","name":"Presses à huile de palme","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":193407,"oldPrice":328791,"discount":70,"rating":4.9,"sold":40000,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-50","name":"Séchoirs solaires alimentaires","category":"AGRICULTURE & ÉLEVAGE","segment":"B2B","price":64634,"oldPrice":74329,"discount":15,"rating":4.4,"sold":150,"emoji":"🌾","color":"#43AA8B","renta":"MOYENNE","repeat":false},{"id":"B2B-51","name":"Machines à coudre industrielles","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":241827,"oldPrice":0,"discount":0,"rating":4.0,"sold":19190,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-52","name":"Machines à broder","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":117901,"oldPrice":141481,"discount":20,"rating":4.2,"sold":471,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-53","name":"Machines à sérigraphier","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":164774,"oldPrice":263638,"discount":60,"rating":4.6,"sold":296,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-54","name":"Presses à chaud (transfert tissu)","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":125887,"oldPrice":176241,"discount":40,"rating":4.5,"sold":11530,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-55","name":"Imprimantes industrielles","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":46412,"oldPrice":53373,"discount":15,"rating":4.4,"sold":59010,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-56","name":"Cartouches imprimantes en gros","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":124756,"oldPrice":174658,"discount":40,"rating":4.2,"sold":443,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-57","name":"Photocopieuses","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":154926,"oldPrice":232389,"discount":50,"rating":4.6,"sold":12000,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-58","name":"Scanners professionnels","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":76953,"oldPrice":0,"discount":0,"rating":4.6,"sold":87000,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-59","name":"Panneaux solaires (gros)","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":223323,"oldPrice":312652,"discount":40,"rating":4.8,"sold":38000,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-60","name":"Batteries solaires industrielles","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":167762,"oldPrice":234866,"discount":40,"rating":4.7,"sold":788,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-61","name":"Onduleurs industriels","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":174434,"oldPrice":0,"discount":0,"rating":4.3,"sold":15460,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-62","name":"Climatiseurs (gros)","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":28627,"oldPrice":40077,"discount":40,"rating":4.3,"sold":475,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-63","name":"Réfrigérateurs commerciaux","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":234758,"oldPrice":352137,"discount":50,"rating":4.5,"sold":54650,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-64","name":"Congélateurs coffre","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":216416,"oldPrice":302982,"discount":40,"rating":4.7,"sold":396,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-65","name":"Fours industriels boulangerie","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":202696,"oldPrice":263504,"discount":30,"rating":4.9,"sold":75110,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-66","name":"Machines à glace","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":212272,"oldPrice":339635,"discount":60,"rating":4.0,"sold":30240,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-67","name":"Broyeurs alimentaires","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":201348,"oldPrice":281887,"discount":40,"rating":4.6,"sold":23000,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-68","name":"Mélangeurs industriels","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":128594,"oldPrice":0,"discount":0,"rating":4.6,"sold":624,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-69","name":"Machines à laver industrielles","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":21571,"oldPrice":36670,"discount":70,"rating":4.9,"sold":359,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-70","name":"Groupes électrogènes diesel","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":14754,"oldPrice":20655,"discount":40,"rating":5.0,"sold":40000,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-71","name":"Tricycles cargo (motos-taxis)","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":106881,"oldPrice":181697,"discount":70,"rating":4.4,"sold":63000,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-72","name":"Motos et pièces détachées","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":237105,"oldPrice":379368,"discount":60,"rating":4.7,"sold":90170,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-73","name":"Pneus en gros","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":13576,"oldPrice":20364,"discount":50,"rating":4.2,"sold":505,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-74","name":"Huiles moteur en gros","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":147728,"oldPrice":221592,"discount":50,"rating":4.1,"sold":41090,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-75","name":"Batteries de voiture","category":"INDUSTRIE & ÉQUIPEMENTS","segment":"B2B","price":178740,"oldPrice":232362,"discount":30,"rating":4.6,"sold":13490,"emoji":"🏭","color":"#577590","renta":"NON","repeat":false},{"id":"B2B-76","name":"Balances électroniques marché","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":38010,"oldPrice":49413,"discount":30,"rating":4.1,"sold":833,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-77","name":"Caisses enregistreuses","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":91129,"oldPrice":109354,"discount":20,"rating":4.8,"sold":660,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-78","name":"Terminaux de paiement","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":146614,"oldPrice":205259,"discount":40,"rating":4.8,"sold":162,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-79","name":"Présentoirs et étagères boutique","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":212089,"oldPrice":275715,"discount":30,"rating":4.6,"sold":66,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-80","name":"Sacs plastiques en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":199436,"oldPrice":319097,"discount":60,"rating":4.5,"sold":20410,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-81","name":"Emballages carton en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":139542,"oldPrice":160473,"discount":15,"rating":4.5,"sold":94000,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-82","name":"Étiquettes et autocollants","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":125073,"oldPrice":0,"discount":0,"rating":4.1,"sold":64000,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-83","name":"Lecteurs code-barre","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":133521,"oldPrice":226985,"discount":70,"rating":4.1,"sold":132,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-84","name":"Caméras surveillance boutique","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":38080,"oldPrice":53312,"discount":40,"rating":4.6,"sold":99840,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-85","name":"Enseignes lumineuses LED","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":144082,"oldPrice":201714,"discount":40,"rating":4.5,"sold":22000,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-86","name":"Chariots de transport","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":228554,"oldPrice":297120,"discount":30,"rating":4.4,"sold":47430,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-87","name":"Tentes et parasols marché","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":109524,"oldPrice":175238,"discount":60,"rating":4.7,"sold":50000,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-88","name":"Tables pliantes en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":103120,"oldPrice":123744,"discount":20,"rating":4.7,"sold":535,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-89","name":"Chaises plastique en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":118213,"oldPrice":135944,"discount":15,"rating":4.7,"sold":431,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-90","name":"Équipements médicaux de base","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":152216,"oldPrice":228324,"discount":50,"rating":4.7,"sold":67930,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-91","name":"Tensiomètres en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":80400,"oldPrice":112560,"discount":40,"rating":4.4,"sold":641,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-92","name":"Thermomètres en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":131403,"oldPrice":170823,"discount":30,"rating":4.8,"sold":70220,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-93","name":"Masques médicaux en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":64286,"oldPrice":102857,"discount":60,"rating":4.8,"sold":87000,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-94","name":"Gants médicaux en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":12589,"oldPrice":15106,"discount":20,"rating":4.3,"sold":60620,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-95","name":"Désinfectants en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":52554,"oldPrice":63064,"discount":20,"rating":4.6,"sold":28000,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-96","name":"Produits d'entretien en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":13036,"oldPrice":14991,"discount":15,"rating":4.7,"sold":71630,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-97","name":"Détergents et savons en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":46263,"oldPrice":69394,"discount":50,"rating":4.3,"sold":382,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-98","name":"Eau de javel en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":202770,"oldPrice":0,"discount":0,"rating":4.7,"sold":82590,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-99","name":"Papier A4 en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":164141,"oldPrice":279039,"discount":70,"rating":4.4,"sold":93940,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false},{"id":"B2B-100","name":"Fournitures bureau en gros","category":"COMMERCE & DISTRIBUTION","segment":"B2B","price":34069,"oldPrice":47696,"discount":40,"rating":4.7,"sold":77000,"emoji":"🛒","color":"#F9C74F","renta":"OUI","repeat":false}];
+const SUPABASE_URL = "https://hvziqwjgnwkgutrdsify.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2emlxd2pnbndrZ3V0cmRzaWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2OTIxMjAsImV4cCI6MjA5NzI2ODEyMH0.AYicxr7MC-ho8tzwjOUkfq4c7cDzCO_HZYiV2d5P0lk";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const CATEGORIES = [
   { name: "BEAUTÉ & SOINS", short: "Beauté", emoji: "💄", color: "#F2789F" },
@@ -145,26 +179,45 @@ function Stars({ rating }) {
   );
 }
 
+function ProductImg({ p, className, big }) {
+  if (p.photo_url) {
+    return <div className={className} style={{ background: "#fff" }}>
+      <img src={p.photo_url} alt={p.nom} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+    </div>;
+  }
+  return <div className={className} style={{ background: `linear-gradient(135deg, ${p.couleur}22, ${p.couleur}55)` }}>
+    <span style={{ fontSize: big ? 120 : 64 }}>{p.emoji}</span>
+  </div>;
+}
+
+function StockTag({ s }) {
+  if (s <= 0) return <span className="stock-out">Rupture de stock</span>;
+  if (s <= 5) return <span className="stock-low">Plus que {s} en stock !</span>;
+  return null;
+}
+
 function ProductCard({ p, onOpen, onAdd }) {
+  const out = p.quantite_stock <= 0;
   return (
     <div className="card" onClick={() => onOpen(p)}>
-      <div className="card-img" style={{ background: `linear-gradient(135deg, ${p.color}22, ${p.color}44)` }}>
-        <span className="card-emoji">{p.emoji}</span>
-        {p.discount > 0 && <span className="badge-disc">-{p.discount}%</span>}
+      <div className="card-img" style={{ position: "relative" }}>
+        <ProductImg p={p} className="card-img" />
+        {p.remise > 0 && <span className="badge-disc">-{p.remise}%</span>}
         {p.segment === "B2B" && <span className="badge-b2b">GROS</span>}
       </div>
       <div className="card-body">
-        <div className="card-name">{p.name}</div>
+        <div className="card-name">{p.nom}</div>
         <div className="card-rate">
-          <Stars rating={p.rating} />
-          <span className="card-sold">{fmtSold(p.sold)} vendus</span>
+          <Stars rating={p.note} />
+          <span className="card-sold">{fmtSold(p.vendus)} vendus</span>
         </div>
+        <StockTag s={p.quantite_stock} />
         <div className="card-price-row">
           <div>
-            <span className="card-price">{fmt(p.price)}</span>
-            {p.oldPrice > 0 && <span className="card-old">{fmt(p.oldPrice)}</span>}
+            <span className="card-price">{fmt(p.prix)}</span>
+            {p.ancien_prix > 0 && <span className="card-old">{fmt(p.ancien_prix)}</span>}
           </div>
-          <button className="add-btn" onClick={(e) => { e.stopPropagation(); onAdd(p); }}>+</button>
+          <button className="add-btn" disabled={out} style={out ? { background: "#ccc", cursor: "not-allowed" } : {}} onClick={(e) => { e.stopPropagation(); if (!out) onAdd(p); }}>+</button>
         </div>
       </div>
     </div>
@@ -174,29 +227,28 @@ function ProductCard({ p, onOpen, onAdd }) {
 function ProductModal({ p, onClose, onAdd }) {
   const [qty, setQty] = useState(1);
   if (!p) return null;
+  const out = p.quantite_stock <= 0;
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>✕</button>
-        <div className="modal-img" style={{ background: `linear-gradient(135deg, ${p.color}22, ${p.color}55)` }}>
-          <span style={{ fontSize: 120 }}>{p.emoji}</span>
-        </div>
+        <ProductImg p={p} className="modal-img" big />
         <div className="modal-info">
-          <div className="modal-cat">{p.category}{p.segment === "B2B" ? " · Vente en gros" : ""}</div>
-          <h2 className="modal-name">{p.name}</h2>
+          <div className="modal-cat">{p.categorie}{p.segment === "B2B" ? " · Vente en gros" : ""}</div>
+          <h2 className="modal-name">{p.nom}</h2>
           <div className="card-rate" style={{ marginBottom: 12 }}>
-            <Stars rating={p.rating} />
-            <span style={{ fontWeight: 700, color: "#333" }}>{p.rating}</span>
-            <span className="card-sold">· {fmtSold(p.sold)} vendus</span>
+            <Stars rating={p.note} />
+            <span style={{ fontWeight: 700, color: "#333" }}>{p.note}</span>
+            <span className="card-sold">· {fmtSold(p.vendus)} vendus</span>
           </div>
           <div className="modal-price">
-            {fmt(p.price)}
-            {p.oldPrice > 0 && <span className="card-old" style={{ fontSize: 16 }}>{fmt(p.oldPrice)}</span>}
-            {p.discount > 0 && <span className="badge-disc" style={{ position: "static", marginLeft: 8 }}>-{p.discount}%</span>}
+            {fmt(p.prix)}
+            {p.ancien_prix > 0 && <span className="card-old" style={{ fontSize: 16 }}>{fmt(p.ancien_prix)}</span>}
+            {p.remise > 0 && <span className="badge-disc" style={{ position: "static", marginLeft: 8 }}>-{p.remise}%</span>}
           </div>
-          {p.repeat && <div className="modal-tag">🔁 Réapprovisionnement facile</div>}
+          <div style={{ marginBottom: 12 }}><StockTag s={p.quantite_stock} /></div>
+          {p.recurrent && <div className="modal-tag">🔁 Réapprovisionnement facile</div>}
           <div className="modal-tag" style={{ background: "#E8F5E9", color: "#2E7D32" }}>🚚 Livraison Chine → Afrique de l'Ouest · 7-15 jours</div>
-          <div className="modal-tag" style={{ background: "#FFF3E0", color: "#E65100" }}>✓ Demande prouvée · Rentabilité {p.renta.toLowerCase()}</div>
           <div className="qty-row">
             <span style={{ fontWeight: 600 }}>Quantité</span>
             <div className="qty-ctrl">
@@ -205,8 +257,8 @@ function ProductModal({ p, onClose, onAdd }) {
               <button onClick={() => setQty(qty + 1)}>+</button>
             </div>
           </div>
-          <button className="buy-btn" onClick={() => { onAdd(p, qty); onClose(); }}>
-            Ajouter au panier · {fmt(p.price * qty)}
+          <button className="buy-btn" disabled={out} style={out ? { background: "#ccc" } : {}} onClick={() => { if (!out) { onAdd(p, qty); onClose(); } }}>
+            {out ? "Indisponible" : `Ajouter au panier · ${fmt(p.prix * qty)}`}
           </button>
         </div>
       </div>
@@ -214,8 +266,8 @@ function ProductModal({ p, onClose, onAdd }) {
   );
 }
 
-function CartDrawer({ open, items, onClose, setItems }) {
-  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+function CartDrawer({ open, items, onClose, setItems, onCheckout }) {
+  const total = items.reduce((s, i) => s + i.prix * i.qty, 0);
   const setQty = (id, q) => setItems(items.map((i) => (i.id === id ? { ...i, qty: q } : i)).filter((i) => i.qty > 0));
   return (
     <React.Fragment>
@@ -229,10 +281,12 @@ function CartDrawer({ open, items, onClose, setItems }) {
           {items.length === 0 && <div className="empty">Votre panier est vide.<br />Découvrez nos 200 produits !</div>}
           {items.map((i) => (
             <div className="cart-item" key={i.id}>
-              <div className="cart-thumb" style={{ background: `${i.color}33` }}>{i.emoji}</div>
+              <div className="cart-thumb" style={{ background: i.photo_url ? "#fff" : `${i.couleur}33`, overflow: "hidden" }}>
+                {i.photo_url ? <img src={i.photo_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : i.emoji}
+              </div>
               <div style={{ flex: 1 }}>
-                <div className="cart-name">{i.name}</div>
-                <div className="card-price">{fmt(i.price)}</div>
+                <div className="cart-name">{i.nom}</div>
+                <div className="card-price">{fmt(i.prix)}</div>
               </div>
               <div className="qty-ctrl small">
                 <button onClick={() => setQty(i.id, i.qty - 1)}>−</button>
@@ -245,7 +299,7 @@ function CartDrawer({ open, items, onClose, setItems }) {
         {items.length > 0 && (
           <div className="drawer-foot">
             <div className="total-row"><span>Total</span><span className="total-val">{fmt(total)}</span></div>
-            <button className="buy-btn" onClick={() => alert("Commande simulée ! Merci de votre achat 🎉")}>Passer la commande</button>
+            <button className="buy-btn" onClick={onCheckout}>Commander</button>
           </div>
         )}
       </div>
@@ -253,7 +307,142 @@ function CartDrawer({ open, items, onClose, setItems }) {
   );
 }
 
+function Checkout({ items, onClose, onDone }) {
+  const [step, setStep] = useState("form");
+  const [nom, setNom] = useState("");
+  const [tel, setTel] = useState("");
+  const [ville, setVille] = useState("");
+  const [adresse, setAdresse] = useState("");
+  const [note, setNote] = useState("");
+  const [pay, setPay] = useState("livraison");
+  const [orderNum, setOrderNum] = useState(null);
+  const [err, setErr] = useState("");
+  const total = items.reduce((s, i) => s + i.prix * i.qty, 0);
+
+  const submit = async () => {
+    setErr("");
+    if (!nom.trim() || !tel.trim()) { setErr("Le nom et le téléphone sont obligatoires."); return; }
+    setStep("loading");
+    try {
+      const { data: cmd, error: e1 } = await sb.from("commandes").insert({
+        client_nom: nom, client_tel: tel, client_ville: ville, client_adresse: adresse,
+        total, mode_paiement: pay, note_client: note, statut: "en_attente"
+      }).select().single();
+      if (e1) throw e1;
+      const lignes = items.map((i) => ({
+        commande_id: cmd.id, produit_id: i.id, produit_nom: i.nom,
+        prix_unitaire: i.prix, quantite: i.qty
+      }));
+      const { error: e2 } = await sb.from("lignes_commande").insert(lignes);
+      if (e2) throw e2;
+
+      // ===========================================================
+      // EMPLACEMENT PAIEMENT FLUTTERWAVE (à brancher plus tard)
+      // -----------------------------------------------------------
+      // Quand ton compte marchand Flutterwave sera validé, c'est ICI
+      // qu'on déclenchera le paiement réel, ex:
+      //
+      //   if (pay === "flutterwave") {
+      //     const res = await fetch("/api/payer", {
+      //       method: "POST",
+      //       headers: { "Content-Type": "application/json" },
+      //       body: JSON.stringify({ commande_id: cmd.id, total, client: { nom, tel } })
+      //     });
+      //     const { lien_paiement } = await res.json();
+      //     window.location.href = lien_paiement; // redirige vers Flutterwave
+      //     return;
+      //   }
+      //
+      // La fonction /api/payer (Vercel) appellera Flutterwave côté
+      // serveur avec la clé SECRÈTE, jamais exposée ici.
+      // ===========================================================
+
+      setOrderNum(cmd.numero);
+      setStep("success");
+      onDone();
+    } catch (e) {
+      setErr("Erreur lors de l'enregistrement : " + (e.message || e) + ". Réessayez.");
+      setStep("form");
+    }
+  };
+
+  return (
+    <div className="checkout-overlay" onClick={step === "loading" ? null : onClose}>
+      <div className="checkout" onClick={(e) => e.stopPropagation()}>
+        {step !== "success" && <button className="modal-close" onClick={onClose}>✕</button>}
+
+        {step === "loading" && (
+          <div className="loading-screen"><div className="spinner" />Enregistrement de votre commande…</div>
+        )}
+
+        {step === "form" && (
+          <React.Fragment>
+            <h2>Finaliser la commande</h2>
+            <div className="sub">Remplissez vos informations de livraison</div>
+
+            <div className="order-summary">
+              {items.map((i) => (
+                <div className="line" key={i.id}><span>{i.qty}× {i.nom}</span><span>{fmt(i.prix * i.qty)}</span></div>
+              ))}
+              <div className="line tot"><span>Total</span><span>{fmt(total)}</span></div>
+            </div>
+
+            <div className="field"><label>Nom complet <span className="req">*</span></label>
+              <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex: Koffi Mensah" /></div>
+            <div className="field"><label>Téléphone <span className="req">*</span></label>
+              <input value={tel} onChange={(e) => setTel(e.target.value)} placeholder="Ex: +229 01 23 45 67" /></div>
+            <div className="field"><label>Ville</label>
+              <input value={ville} onChange={(e) => setVille(e.target.value)} placeholder="Ex: Cotonou" /></div>
+            <div className="field"><label>Adresse de livraison</label>
+              <input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Quartier, repère…" /></div>
+            <div className="field"><label>Note (facultatif)</label>
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows="2" placeholder="Instructions de livraison…" /></div>
+
+            <label style={{ fontSize: 13, fontWeight: 600, color: "#444", display: "block", marginBottom: 8 }}>Mode de paiement</label>
+            <div className="pay-options">
+              <div className={`pay-opt ${pay === "livraison" ? "active" : ""}`} onClick={() => setPay("livraison")}>
+                <span className="ico">💵</span>
+                <span className="txt"><b>Paiement à la livraison</b><span>Payez en espèces à réception</span></span>
+              </div>
+              <div className={`pay-opt ${pay === "flutterwave" ? "active" : ""}`} onClick={() => setPay("flutterwave")}>
+                <span className="ico">💳</span>
+                <span className="txt"><b>Carte / Mobile Money</b><span>Paiement sécurisé en ligne</span></span>
+                <span className="soon">BIENTÔT</span>
+              </div>
+            </div>
+
+            {pay === "flutterwave" && (
+              <div className="modal-tag" style={{ background: "#FFF3E0", color: "#E65100", marginBottom: 14 }}>
+                ⏳ Le paiement en ligne sera activé prochainement. Pour l'instant, choisissez « paiement à la livraison ».
+              </div>
+            )}
+
+            {err && <div className="modal-tag" style={{ background: "#FFEBEE", color: "#C62828", marginBottom: 14 }}>{err}</div>}
+
+            <button className="buy-btn" disabled={pay === "flutterwave"} style={pay === "flutterwave" ? { background: "#ccc" } : {}} onClick={submit}>
+              Valider la commande · {fmt(total)}
+            </button>
+          </React.Fragment>
+        )}
+
+        {step === "success" && (
+          <div className="success-box">
+            <div className="check">✅</div>
+            <h2>Commande enregistrée !</h2>
+            <p style={{ color: "#666" }}>Merci {nom}. Nous vous contacterons au {tel} pour confirmer.</p>
+            <div className="num">Commande N° {orderNum}</div>
+            <button className="buy-btn" onClick={onClose}>Continuer mes achats</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState("");
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState("Tout");
   const [segment, setSegment] = useState("Tout");
@@ -261,7 +450,17 @@ function App() {
   const [modal, setModal] = useState(null);
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkout, setCheckout] = useState(false);
   const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await sb.from("produits").select("*").eq("actif", true);
+      if (error) { setLoadErr(error.message); setLoading(false); return; }
+      setProducts(data || []);
+      setLoading(false);
+    })();
+  }, []);
 
   const addToCart = (p, qty = 1) => {
     setCart((c) => {
@@ -269,26 +468,26 @@ function App() {
       if (ex) return c.map((i) => (i.id === p.id ? { ...i, qty: i.qty + qty } : i));
       return [...c, { ...p, qty }];
     });
-    setToast(`✓ ${p.name} ajouté`);
+    setToast(`✓ ${p.nom} ajouté`);
     setTimeout(() => setToast(""), 1800);
   };
 
   const filtered = useMemo(() => {
-    let r = PRODUCTS.filter((p) => {
-      if (activeCat !== "Tout" && p.category !== activeCat) return false;
+    let r = products.filter((p) => {
+      if (activeCat !== "Tout" && p.categorie !== activeCat) return false;
       if (segment !== "Tout" && p.segment !== segment) return false;
-      if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.category.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !p.nom.toLowerCase().includes(search.toLowerCase()) && !p.categorie.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-    if (sort === "prix-bas") r = [...r].sort((a, b) => a.price - b.price);
-    else if (sort === "prix-haut") r = [...r].sort((a, b) => b.price - a.price);
-    else if (sort === "promo") r = [...r].sort((a, b) => b.discount - a.discount);
-    else r = [...r].sort((a, b) => b.sold - a.sold);
+    if (sort === "prix-bas") r = [...r].sort((a, b) => a.prix - b.prix);
+    else if (sort === "prix-haut") r = [...r].sort((a, b) => b.prix - a.prix);
+    else if (sort === "promo") r = [...r].sort((a, b) => b.remise - a.remise);
+    else r = [...r].sort((a, b) => b.vendus - a.vendus);
     return r;
-  }, [activeCat, segment, search, sort]);
+  }, [products, activeCat, segment, search, sort]);
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
-  const deals = useMemo(() => [...PRODUCTS].filter((p) => p.discount >= 40).sort((a, b) => b.discount - a.discount).slice(0, 6), []);
+  const deals = useMemo(() => [...products].filter((p) => p.remise >= 40).sort((a, b) => b.remise - a.remise).slice(0, 6), [products]);
 
   return (
     <div className="app">
@@ -299,7 +498,7 @@ function App() {
             <span className="logo-text">Maïko<span className="logo-accent">Market</span></span>
           </div>
           <div className="searchbar">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher parmi 200 produits..." />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher parmi nos produits..." />
             <button className="search-btn">Rechercher</button>
           </div>
           <button className="cart-icon" onClick={() => setCartOpen(true)}>
@@ -323,59 +522,68 @@ function App() {
         ))}
       </nav>
 
-      {activeCat === "Tout" && !search && (
-        <React.Fragment>
-          <section className="hero">
-            <div className="hero-text">
-              <div className="hero-eyebrow">CHINE → AFRIQUE DE L'OUEST</div>
-              <h1>Les meilleurs produits, <br />directement au prix d'usine.</h1>
-              <p>Beauté, high-tech, maison, agriculture, équipements pros — sélectionnés pour le marché béninois et nigérian.</p>
-              <button className="hero-cta" onClick={() => setSort("promo")}>Voir les promotions 🔥</button>
-            </div>
-            <div className="hero-cards">
-              {CATEGORIES.slice(0, 4).map((c) => (
-                <div key={c.name} className="hero-tile" style={{ background: `${c.color}` }} onClick={() => setActiveCat(c.name)}>
-                  <span style={{ fontSize: 34 }}>{c.emoji}</span>
-                  <span>{c.short}</span>
-                </div>
-              ))}
-            </div>
-          </section>
+      {loading && <div className="loading-screen"><div className="spinner" />Chargement du catalogue…</div>}
+      {loadErr && <div className="empty">Erreur de chargement : {loadErr}</div>}
 
-          <section className="flash">
-            <div className="flash-head">
-              <h2>⚡ Ventes Flash</h2>
-              <span className="flash-timer">Offres limitées</span>
+      {!loading && !loadErr && (
+        <React.Fragment>
+          {activeCat === "Tout" && !search && (
+            <React.Fragment>
+              <section className="hero">
+                <div className="hero-text">
+                  <div className="hero-eyebrow">CHINE → AFRIQUE DE L'OUEST</div>
+                  <h1>Les meilleurs produits, <br />directement au prix d'usine.</h1>
+                  <p>Beauté, high-tech, maison, agriculture, équipements pros — sélectionnés pour le marché béninois et nigérian.</p>
+                  <button className="hero-cta" onClick={() => setSort("promo")}>Voir les promotions 🔥</button>
+                </div>
+                <div className="hero-cards">
+                  {CATEGORIES.slice(0, 4).map((c) => (
+                    <div key={c.name} className="hero-tile" style={{ background: `${c.color}` }} onClick={() => setActiveCat(c.name)}>
+                      <span style={{ fontSize: 34 }}>{c.emoji}</span>
+                      <span>{c.short}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {deals.length > 0 && (
+                <section className="flash">
+                  <div className="flash-head">
+                    <h2>⚡ Ventes Flash</h2>
+                    <span className="flash-timer">Offres limitées</span>
+                  </div>
+                  <div className="grid">
+                    {deals.map((p) => <ProductCard key={p.id} p={p} onOpen={setModal} onAdd={addToCart} />)}
+                  </div>
+                </section>
+              )}
+            </React.Fragment>
+          )}
+
+          <section className="catalog">
+            <div className="catalog-head">
+              <h2>{search ? `Résultats pour "${search}"` : activeCat === "Tout" ? "Tous les produits" : activeCat} <span className="count">({filtered.length})</span></h2>
+              <div className="filters">
+                <select value={segment} onChange={(e) => setSegment(e.target.value)}>
+                  <option value="Tout">Tous · Particuliers &amp; Gros</option>
+                  <option value="B2C">Particuliers (B2C)</option>
+                  <option value="B2B">Vente en gros (B2B)</option>
+                </select>
+                <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                  <option value="populaire">Plus populaires</option>
+                  <option value="prix-bas">Prix croissant</option>
+                  <option value="prix-haut">Prix décroissant</option>
+                  <option value="promo">Meilleures promos</option>
+                </select>
+              </div>
             </div>
             <div className="grid">
-              {deals.map((p) => <ProductCard key={p.id} p={p} onOpen={setModal} onAdd={addToCart} />)}
+              {filtered.map((p) => <ProductCard key={p.id} p={p} onOpen={setModal} onAdd={addToCart} />)}
             </div>
+            {filtered.length === 0 && <div className="empty">Aucun produit trouvé. Essayez un autre mot-clé.</div>}
           </section>
         </React.Fragment>
       )}
-
-      <section className="catalog">
-        <div className="catalog-head">
-          <h2>{search ? `Résultats pour "${search}"` : activeCat === "Tout" ? "Tous les produits" : activeCat} <span className="count">({filtered.length})</span></h2>
-          <div className="filters">
-            <select value={segment} onChange={(e) => setSegment(e.target.value)}>
-              <option value="Tout">Tous · Particuliers &amp; Gros</option>
-              <option value="B2C">Particuliers (B2C)</option>
-              <option value="B2B">Vente en gros (B2B)</option>
-            </select>
-            <select value={sort} onChange={(e) => setSort(e.target.value)}>
-              <option value="populaire">Plus populaires</option>
-              <option value="prix-bas">Prix croissant</option>
-              <option value="prix-haut">Prix décroissant</option>
-              <option value="promo">Meilleures promos</option>
-            </select>
-          </div>
-        </div>
-        <div className="grid">
-          {filtered.map((p) => <ProductCard key={p.id} p={p} onOpen={setModal} onAdd={addToCart} />)}
-        </div>
-        {filtered.length === 0 && <div className="empty">Aucun produit trouvé. Essayez un autre mot-clé.</div>}
-      </section>
 
       <footer className="footer">
         <div className="footer-grid">
@@ -387,11 +595,13 @@ function App() {
           <div><h4>Aide</h4><p>Suivi de commande</p><p>Livraison &amp; douanes</p><p>Retours</p><p>Nous contacter</p></div>
           <div><h4>Paiement</h4><p>Mobile Money</p><p>Carte bancaire</p><p>Paiement à la livraison</p><p>Virement (gros volumes)</p></div>
         </div>
-        <div className="foot-bottom">© 2026 MaïkoMarket · Démo e-commerce · Chine ↔ Bénin &amp; Nigeria</div>
+        <div className="foot-bottom">© 2026 MaïkoMarket · Chine ↔ Bénin &amp; Nigeria</div>
       </footer>
 
       <ProductModal p={modal} onClose={() => setModal(null)} onAdd={addToCart} />
-      <CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} setItems={setCart} />
+      <CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} setItems={setCart}
+        onCheckout={() => { setCartOpen(false); setCheckout(true); }} />
+      {checkout && <Checkout items={cart} onClose={() => setCheckout(false)} onDone={() => setCart([])} />}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

@@ -523,6 +523,65 @@ function StockTab({ toast }) {
   );
 }
 
+function ValidationsTab({ toast }) {
+  const [profils, setProfils] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filtre, setFiltre] = useState("en_attente");
+  const load = async () => {
+    setLoading(true);
+    const { data } = await sb.from("profils").select("*").in("role", ["fournisseur","cargo"]).order("cree_le", { ascending: false });
+    setProfils(data || []); setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+  const setStatut = async (p, statut) => {
+    await sb.from("profils").update({ statut }).eq("id", p.id);
+    toast(statut === "actif" ? "Compte validé" : statut === "refuse" ? "Compte refusé" : "Compte suspendu");
+    load();
+  };
+  if (loading) return <div className="loading-screen"><div className="spinner"/>Chargement…</div>;
+  const filtered = filtre === "tous" ? profils : profils.filter(p => p.statut === filtre);
+  const nbAttente = profils.filter(p => p.statut === "en_attente").length;
+  return (
+    <div>
+      <div className="stat-cards">
+        <div className="stat-card"><div className="lbl">En attente de validation</div><div className="val" style={{color:"#E65100"}}>{nbAttente}</div></div>
+        <div className="stat-card"><div className="lbl">Fournisseurs actifs</div><div className="val">{profils.filter(p=>p.role==="fournisseur"&&p.statut==="actif").length}</div></div>
+        <div className="stat-card"><div className="lbl">Cargo actifs</div><div className="val">{profils.filter(p=>p.role==="cargo"&&p.statut==="actif").length}</div></div>
+      </div>
+      <div className="toolbar">
+        <select value={filtre} onChange={(e)=>setFiltre(e.target.value)}>
+          <option value="en_attente">En attente</option>
+          <option value="actif">Validés</option>
+          <option value="refuse">Refusés</option>
+          <option value="suspendu">Suspendus</option>
+          <option value="tous">Tous</option>
+        </select>
+      </div>
+      {filtered.length === 0 ? <div className="empty">Aucune demande dans cette catégorie.</div> :
+      <table>
+        <thead><tr><th>Rôle</th><th>Nom</th><th>Entreprise</th><th>Email</th><th>Téléphone</th><th>Statut</th><th>Actions</th></tr></thead>
+        <tbody>
+          {filtered.map(p => (
+            <tr key={p.id}>
+              <td><span className="pill" style={{background:p.role==="fournisseur"?"#EDE7F6":"#E1F5FE",color:p.role==="fournisseur"?"#5E35B1":"#0277BD"}}>{p.role==="fournisseur"?"Fournisseur":"Cargo"}</span></td>
+              <td><b>{p.nom||"—"}</b></td>
+              <td>{p.entreprise||"—"}</td>
+              <td style={{fontSize:12.5}}>{p.email}</td>
+              <td>{p.telephone||"—"}</td>
+              <td><span className={`pill ${p.statut==="actif"?"ok":p.statut==="en_attente"?"low":"out"}`}>{p.statut==="actif"?"Validé":p.statut==="en_attente"?"En attente":p.statut==="refuse"?"Refusé":"Suspendu"}</span></td>
+              <td style={{whiteSpace:"nowrap"}}>
+                {p.statut !== "actif" && <button className="act-btn" onClick={()=>setStatut(p,"actif")} style={{color:"#2E7D32"}}>Valider</button>}
+                {p.statut === "en_attente" && <button className="act-btn" onClick={()=>setStatut(p,"refuse")} style={{color:"#C62828"}}>Refuser</button>}
+                {p.statut === "actif" && <button className="act-btn" onClick={()=>setStatut(p,"suspendu")} style={{color:"#E65100"}}>Suspendre</button>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>}
+    </div>
+  );
+}
+
 function Dashboard({ onLogout, email }) {
   const [tab, setTab] = useState("produits");
   const [toastMsg, setToastMsg] = useState("");
@@ -538,12 +597,14 @@ function Dashboard({ onLogout, email }) {
         <button className={`tab ${tab==="commandes"?"active":""}`} onClick={()=>setTab("commandes")}>🧾 Commandes</button>
         <button className={`tab ${tab==="stock"?"active":""}`} onClick={()=>setTab("stock")}>📊 Stock</button>
         <button className={`tab ${tab==="categories"?"active":""}`} onClick={()=>setTab("categories")}>🏷️ Catégories</button>
+        <button className={`tab ${tab==="validations"?"active":""}`} onClick={()=>setTab("validations")}>✅ Validations</button>
       </div>
       <div className="content">
         {tab==="produits" && <ProduitsTab toast={toast} />}
         {tab==="commandes" && <CommandesTab toast={toast} />}
         {tab==="stock" && <StockTab toast={toast} />}
         {tab==="categories" && <CategoriesTab toast={toast} />}
+        {tab==="validations" && <ValidationsTab toast={toast} />}
       </div>
       {toastMsg && <div className="toast">{toastMsg}</div>}
     </div>
